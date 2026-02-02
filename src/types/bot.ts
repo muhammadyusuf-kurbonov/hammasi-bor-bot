@@ -13,6 +13,7 @@ export interface SessionData {
   currentPrice?: string;
   currentTrack?: string;
   currentDesc?: string;
+  skipShipmentPrice?: boolean;
 }
 
 // Extended context type with user and session

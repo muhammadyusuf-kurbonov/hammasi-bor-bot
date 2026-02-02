@@ -17,7 +17,7 @@ export const shipments = pgTable('shipments', {
   id: serial('id').primaryKey(),
   trackNumber: varchar('track_number', { length: 100 }).notNull(),
   goodPrice: decimal('good_price', { precision: 10, scale: 2 }).notNull(), // in CNY
-  shipmentPrice: decimal('shipment_price', { precision: 10, scale: 2 }), // forwarded from shipment service
+  shipmentPrice: decimal('shipment_price', { precision: 10, scale: 2 }), // in UZS (so'm)
   status: varchar('status', { length: 50 }).default('pending'), // pending, shipped, delivered, paid
   ownerId: integer('owner_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   isPaid: boolean('is_paid').default(false),
