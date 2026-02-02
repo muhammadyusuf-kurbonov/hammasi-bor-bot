@@ -19,7 +19,7 @@ composer.callbackQuery(/^edit_shipment_(\d+)$/, async (ctx) => {
     .text("📝 Tovar narxini o'zgartirish", `edit_price_${shipmentId}`)
     .row()
     .text("📦 Tracking raqamini o'zgartirish", `edit_track_${shipmentId}`)
-    .text("📝 Tavsifni o'zgartirish", `edit_desc_${shipmentId}`)
+    .text("📝 Nomini o'zgartirish", `edit_desc_${shipmentId}`)
     .row()
     .text("🗑️ Yukni o'chirish", `delete_shipment_${shipmentId}`)
     .row()
@@ -30,7 +30,7 @@ composer.callbackQuery(/^edit_shipment_(\d+)$/, async (ctx) => {
     `🔹 *Tracking:* ${shipment.trackNumber}\n` +
     `💰 *Tovar narxi:* ${shipment.goodPrice} CNY\n` +
     `📊 *Holati:* ${shipment.isPaid ? "💰 To'langan" : shipment.status}\n` +
-    `📝 *Tavsif:* ${shipment.description || "Yo'q"}`,
+    `📝 *Nomi:* ${shipment.description || "Yo'q"}`,
     { reply_markup: keyboard, parse_mode: "Markdown" }
   );
 });
@@ -150,9 +150,9 @@ composer.callbackQuery(/^edit_desc_(\d+)$/, async (ctx) => {
   };
 
   await ctx.reply(
-    `📝 *Tavsifni o'zgartirish*\n\n` +
-    `Hozirgi tavsif: ${shipment.description || "Yo'q"}\n\n` +
-    `Yangi tavsifni kiriting (agar tavsiz kerak bo'lsa, "⏭️ O'tkazish" deb yozing):`
+    `📝 *Nomini o'zgartirish*\n\n` +
+    `Hozirgi nom: ${shipment.description || "Yo'q"}\n\n` +
+    `Yangi nomini kiriting:`
   );
 });
 
@@ -217,7 +217,7 @@ composer.on("message:text", async (ctx, next) => {
           description: description
         });
 
-        await ctx.reply("✅ Tavsif muvaffaqiyatli yangilandi!");
+        await ctx.reply("✅ Nom muvaffaqiyatli yangilandi!");
 
         const keyboard = new InlineKeyboard()
           .text("📦 Yuklar ro'yxati", "list_shipments")
@@ -226,7 +226,7 @@ composer.on("message:text", async (ctx, next) => {
         ctx.reply("Boshqa amallar uchun:", { reply_markup: keyboard });
       } catch (error) {
         console.error("Error updating shipment description:", error);
-        await ctx.reply("❌ Tavsifni yangilashda xatolik yuz berdi.");
+        await ctx.reply("❌ Nomni yangilashda xatolik yuz berdi.");
       }
       break;
     }

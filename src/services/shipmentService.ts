@@ -1,16 +1,25 @@
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, ilike, sql } from 'drizzle-orm';
 import { db } from '../database';
 import { shipments, users } from '../database/schema';
 import type { ShipmentData } from '../types/bot';
 
 export class ShipmentService {
-  // Get user's shipments
-  static async getUserShipments(userId: number) {
-    return await db
+  // Get user's shipments with pagination
+  static async getUserShipments(userId: number, page = 0, pageSize = 5) {
+    const items = await db
       .select()
       .from(shipments)
       .where(eq(shipments.ownerId, userId))
-      .orderBy(desc(shipments.createdAt));
+      .orderBy(desc(shipments.createdAt))
+      .limit(pageSize)
+      .offset(page * pageSize);
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(shipments)
+      .where(eq(shipments.ownerId, userId));
+
+    return { items, total: count };
   }
 
   // Get single shipment by ID and user ID
@@ -43,6 +52,29 @@ export class ShipmentService {
       .limit(1);
     
     return result.length > 0 ? result[0] : null;
+  }
+
+  // Search shipments by name (case-insensitive, partial match) with pagination
+  static async searchByName(query: string, userId: number, page = 0, pageSize = 5) {
+    const where = and(
+      eq(shipments.ownerId, userId),
+      ilike(shipments.description, `%${query}%`)
+    );
+
+    const items = await db
+      .select()
+      .from(shipments)
+      .where(where)
+      .orderBy(desc(shipments.createdAt))
+      .limit(pageSize)
+      .offset(page * pageSize);
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(shipments)
+      .where(where);
+
+    return { items, total: count };
   }
 
   // Create new shipment

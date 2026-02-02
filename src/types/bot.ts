@@ -78,7 +78,7 @@ export const MESSAGES = {
   ENTER_GOOD_PRICE: '💰 Tovar narxini (CNY) kiriting:',
   ENTER_SHIPMENT_PRICE: '🚚 Yetkazish narxini kiriting (agar ma\'lum bo\'lsa):',
   ENTER_OWNER: '👤 Qabul qiluvchini tanlang:',
-  ENTER_DESCRIPTION: '📝 Tavsifni kiriting (ixtiyoriy):',
+  ENTER_DESCRIPTION: '📝 Yuk nomini kiriting:',
   SHIPMENT_ADDED: '✅ Yuk muvaffaqiyatli qo\'shildi!',
   SHIPMENT_LIST: '📦 Yuklar ro\'yxati:',
   SHIPMENT_NOT_FOUND: '❌ Yuk topilmadi!',

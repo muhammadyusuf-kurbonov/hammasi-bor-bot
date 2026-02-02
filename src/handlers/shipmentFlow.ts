@@ -116,7 +116,7 @@ composer.on("message:text", async (ctx, next) => {
 
       session.trackNumber = text;
       session.action = "awaiting_description";
-      await ctx.reply("📝 Yuk nomini (tavsifini) kiriting:");
+      await ctx.reply("📝 Yuk nomini kiriting:");
       break;
     }
 
