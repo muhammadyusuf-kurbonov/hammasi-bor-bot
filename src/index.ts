@@ -1,23 +1,6 @@
 import { bot } from './bot';
 import { db } from './database';
 import { users } from './database/schema';
-import { eq } from 'drizzle-orm';
-
-// Health check endpoint
-Bun.serve({
-  port: 3001,
-  async fetch(req) {
-    const url = new URL(req.url);
-    
-    if (url.pathname === '/health') {
-      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response('Not Found', { status: 404 });
-  },
-});
 
 // Start the bot
 console.log('🚀 Starting Hammasi Bor Tracking Bot...');
