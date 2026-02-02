@@ -21,4 +21,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
 # Run migrations before starting the bot
-CMD ["sh", "-c", "bun run src/database/migrate.ts && bun start"]
+CMD ["sh", "-c", "sleep 10 && bun run src/database/migrate.ts && bun start"]

@@ -95,7 +95,7 @@ composer.on(":forward_origin", async (ctx) => {
     return;
   }
 
-  // Original flow for confirmation-based messages
+  // Fallback: any forwarded message with a track number starts add flow directly
   const parsedData = ShipmentParser.parseMessage(messageText);
 
   if (!parsedData) {
@@ -105,20 +105,31 @@ composer.on(":forward_origin", async (ctx) => {
     return;
   }
 
-  let priceInfo = "";
-  if (parsedData.receivePriceCNY && parsedData.receivePriceUZS) {
-    priceInfo = `📦 Tovar narxi: ${parsedData.receivePriceCNY} CNY (~${Math.round(parsedData.receivePriceUZS)} so'm)\n🚚 Yetkazish narxi: ${parsedData.shipmentPrice ? `${parsedData.shipmentPrice} so'm` : "Noma'lum"}\n\n`;
-  } else {
-    priceInfo = `📦 Narx: ${parsedData.shipmentPrice ? `${parsedData.shipmentPrice} so'm` : "Noma'lum"}\n\n`;
+  const existing = await db
+    .select()
+    .from(shipments)
+    .where(
+      and(
+        eq(shipments.trackNumber, parsedData.trackNumber),
+        eq(shipments.ownerId, ctx.user!.id),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    await ctx.reply(`⚠️ Bu tracking raqam sizda allaqachon mavjud: ${parsedData.trackNumber}`);
+    return;
   }
 
   await ctx.reply(
-    `🔍 Yuk topildi:\n\n${priceInfo}Agar bu yukni qo\'shmoqchi bo\'lsangiz, "✓ Qo\'shish" deb yozing.`,
+    `📦 Yuk topildi: ${parsedData.trackNumber}\n\n📝 Yuk nomini (tavsifini) kiriting:`,
   );
 
   ctx.session = {
-    action: "confirm_shipment",
-    parsedData: parsedData,
+    action: "awaiting_description",
+    trackNumber: parsedData.trackNumber,
+    shipmentPrice: parsedData.shipmentPrice,
+    skipShipmentPrice: !!parsedData.receivePriceUZS,
   };
 });
 

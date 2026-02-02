@@ -13,7 +13,7 @@ export interface ParsedShipmentData {
 // Simple parser for the specific message format
 const TRACK_NUMBER_REGEX = /(?:JT|YT)\d{12,13}|\d{12,15}/gi;
 const PRICE_REGEX = /yo'l haqi:\s*(\d+(?:\.\d{2})?)\s*so'm/gi;
-const ORDER_SUCCESS_REGEX = /trek\s+raqami:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/gi;
+const ORDER_SUCCESS_REGEX = /trek\s+raqam[i]?:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/i;
 
 export class ShipmentParser {
   /**
@@ -67,7 +67,7 @@ export class ShipmentParser {
     const normalizedText = text.toLowerCase().trim();
     
     // Check for order success message (use fresh regex to avoid lastIndex issues)
-    const orderSuccessRegex = /trek\s+raqami:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/gi;
+    const orderSuccessRegex = /trek\s+raqam[i]?:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/gi;
     if (orderSuccessRegex.exec(normalizedText)) {
       return true;
     }
