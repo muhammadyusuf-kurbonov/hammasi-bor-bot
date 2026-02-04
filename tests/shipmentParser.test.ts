@@ -1,5 +1,5 @@
-import { test, expect } from "bun:test";
-import { ShipmentParser } from "../services/shipmentParser";
+import { test, expect, describe } from "bun:test";
+import { ShipmentParser } from "../src/services/shipmentParser";
 
 describe("ShipmentParser", () => {
   describe("parseMessage", () => {
@@ -46,7 +46,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       
       expect(result).toEqual({
         trackNumber: "772055336899474",
-        shipmentPrice: 2.31,
+        shipmentPrice: 3700,
         receivePriceCNY: 2.31,
         receivePriceUZS: 3700
       });
@@ -65,7 +65,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       
       expect(result).toEqual({
         trackNumber: "JT5451380061466",
-        shipmentPrice: 188.81,
+        shipmentPrice: 302100,
         receivePriceCNY: 188.81,
         receivePriceUZS: 302100
       });
@@ -84,7 +84,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       
       expect(result).toEqual({
         trackNumber: "78976460106087",
-        shipmentPrice: 3.69,
+        shipmentPrice: 5900,
         receivePriceCNY: 3.69,
         receivePriceUZS: 5900
       });
@@ -175,7 +175,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       const result = ShipmentParser.parseMessage(message);
       
       expect(result?.trackNumber).toBe("772055336899474");
-      expect(result?.shipmentPrice).toBe(2.31);
+      expect(result?.shipmentPrice).toBe(3700);
       expect(result?.receivePriceCNY).toBe(2.31);
       expect(result?.receivePriceUZS).toBe(3700);
     });
@@ -192,7 +192,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       const result = ShipmentParser.parseMessage(message);
       
       expect(result?.trackNumber).toBe("JT5451380061466");
-      expect(result?.shipmentPrice).toBe(188.81);
+      expect(result?.shipmentPrice).toBe(302100);
       expect(result?.receivePriceCNY).toBe(188.81);
       expect(result?.receivePriceUZS).toBe(302100);
     });
@@ -209,7 +209,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       const result = ShipmentParser.parseMessage(message);
       
       expect(result?.trackNumber).toBe("78976460106087");
-      expect(result?.shipmentPrice).toBe(3.69);
+      expect(result?.shipmentPrice).toBe(5900);
       expect(result?.receivePriceCNY).toBe(3.69);
       expect(result?.receivePriceUZS).toBe(5900);
     });
@@ -228,7 +228,7 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       const result = ShipmentParser.parseMessage(message);
       
       expect(result?.trackNumber).toBe("465044299299134");
-      expect(result?.shipmentPrice).toBe(10.19);
+      expect(result?.shipmentPrice).toBe(16300);
       expect(result?.receivePriceCNY).toBe(10.19);
       expect(result?.receivePriceUZS).toBe(16300);
     });

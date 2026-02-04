@@ -50,10 +50,10 @@ export class ShipmentParser {
     
     if (priceMatches && priceMatches.length > 0) {
       const priceInfo = this.extractPriceInfo(priceMatches[0]);
+      result.shipmentPrice = priceInfo.uzsPrice;
+      result.receivePriceUZS = priceInfo.uzsPrice;
       if (priceInfo.cnyPrice) {
-        result.shipmentPrice = priceInfo.cnyPrice;
         result.receivePriceCNY = priceInfo.cnyPrice;
-        result.receivePriceUZS = priceInfo.uzsPrice;
       }
     }
     
