@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --button-color: #2481d2;
+  --button-text-color: #ffffff;
+  --hint-color: #999999;
+  --link-color: #2481d2;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #17212b;
+    --text-color: #ffffff;
+    --button-color: #5eb5f7;
+    --button-text-color: #000000;
+    --hint-color: #7e8c91;
+    --link-color: #6ab3f3;
+  }
+}
