@@ -1,9 +1,9 @@
-import { pgTable, serial, varchar, decimal, timestamp, boolean, integer, text, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, decimal, timestamp, boolean, integer, bigint, text, unique } from 'drizzle-orm/pg-core';
 
 // Users table
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  telegramId: integer('telegram_id').unique().notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).unique().notNull(),
   username: varchar('username', { length: 100 }),
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
