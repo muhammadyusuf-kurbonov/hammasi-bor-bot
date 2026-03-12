@@ -39,6 +39,16 @@ export const statusHistory = pgTable('status_history', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Shared access table - allows users to share their records with others
+export const sharedAccess = pgTable('shared_access', {
+  id: serial('id').primaryKey(),
+  ownerId: integer('owner_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  sharedWithId: integer('shared_with_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueOwnerShared: unique().on(table.ownerId, table.sharedWithId),
+}));
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -46,3 +56,5 @@ export type Shipment = typeof shipments.$inferSelect;
 export type NewShipment = typeof shipments.$inferInsert;
 export type StatusHistory = typeof statusHistory.$inferSelect;
 export type NewStatusHistory = typeof statusHistory.$inferInsert;
+export type SharedAccess = typeof sharedAccess.$inferSelect;
+export type NewSharedAccess = typeof sharedAccess.$inferInsert;

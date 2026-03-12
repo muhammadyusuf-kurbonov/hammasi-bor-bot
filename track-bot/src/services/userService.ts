@@ -1,6 +1,6 @@
 import { db } from '../database';
-import { users } from '../database/schema';
-import { eq } from 'drizzle-orm';
+import { users, sharedAccess } from '../database/schema';
+import { eq, and, or } from 'drizzle-orm';
 import type { User, NewUser } from '../database/schema';
 
 export class UserService {
@@ -157,6 +157,123 @@ export class UserService {
     } catch (error) {
       console.error('Error in validateUserOwnsShipment:', error);
       return false;
+    }
+  }
+
+  /**
+   * Grant share access to another user
+   * @param ownerId The user ID who owns the records
+   * @param sharedWithTelegramId The Telegram ID of the user to share with
+   * @returns The created shared access record or null if failed
+   */
+  static async grantShareAccess(ownerId: number, sharedWithTelegramId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      // Get the user to share with
+      const targetUser = await this.getUserByTelegramId(sharedWithTelegramId);
+      if (!targetUser) {
+        return { success: false, message: 'Foydalanuvchi topilmadi' };
+      }
+
+      if (targetUser.id === ownerId) {
+        return { success: false, message: 'Ozingiz bilan ulashish mumkin emas' };
+      }
+
+      // Check if already shared
+      const existingShare = await db.select()
+        .from(sharedAccess)
+        .where(
+          and(
+            eq(sharedAccess.ownerId, ownerId),
+            eq(sharedAccess.sharedWithId, targetUser.id)
+          )
+        )
+        .limit(1);
+
+      if (existingShare.length > 0) {
+        return { success: false, message: 'Bu foydalanuvchi allaqachon ulashilgan' };
+      }
+
+      // Create share access
+      await db.insert(sharedAccess).values({
+        ownerId,
+        sharedWithId: targetUser.id,
+      });
+
+      return { success: true, message: 'Muvaffaqiyatli ulashildi!' };
+    } catch (error) {
+      console.error('Error in grantShareAccess:', error);
+      return { success: false, message: 'Xatolik yuz berdi' };
+    }
+  }
+
+  /**
+   * Revoke share access from another user
+   * @param ownerId The user ID who owns the records
+   * @param sharedWithTelegramId The Telegram ID of the user to unshare with
+   * @returns Success status
+   */
+  static async revokeShareAccess(ownerId: number, sharedWithTelegramId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      // Get the user to unshare with
+      const targetUser = await this.getUserByTelegramId(sharedWithTelegramId);
+      if (!targetUser) {
+        return { success: false, message: 'Foydalanuvchi topilmadi' };
+      }
+
+      // Delete share access
+      const result = await db.delete(sharedAccess)
+        .where(
+          and(
+            eq(sharedAccess.ownerId, ownerId),
+            eq(sharedAccess.sharedWithId, targetUser.id)
+          )
+        );
+
+      if (result.rowCount === 0) {
+        return { success: false, message: 'Bu foydalanuvchi bilan ulashish yo\'q' };
+      }
+
+      return { success: true, message: 'Ulashish bekor qilindi!' };
+    } catch (error) {
+      console.error('Error in revokeShareAccess:', error);
+      return { success: false, message: 'Xatolik yuz berdi' };
+    }
+  }
+
+  /**
+   * Get list of users who have access to current user's records
+   * @param ownerId The user ID who owns the records
+   * @returns Array of users who can see the owner's records
+   */
+  static async getSharedWithUsers(ownerId: number): Promise<User[]> {
+    try {
+      const sharedUsers = await db.select({ user: users })
+        .from(sharedAccess)
+        .innerJoin(users, eq(sharedAccess.sharedWithId, users.id))
+        .where(eq(sharedAccess.ownerId, ownerId));
+
+      return sharedUsers.map(s => s.user);
+    } catch (error) {
+      console.error('Error in getSharedWithUsers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get list of user IDs whose records current user can see
+   * @param userId The user ID who wants to see others' records
+   * @returns Array of owner user IDs
+   */
+  static async getAccessibleOwnerIds(userId: number): Promise<number[]> {
+    try {
+      const sharedRecords = await db.select()
+        .from(sharedAccess)
+        .where(eq(sharedAccess.sharedWithId, userId));
+
+      return sharedRecords.map(r => r.ownerId);
+    } catch (error) {
+      console.error('Error in getAccessibleOwnerIds:', error);
+      return [];
     }
   }
 }
