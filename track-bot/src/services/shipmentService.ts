@@ -1,15 +1,26 @@
-import { and, eq, desc, ilike, sql } from 'drizzle-orm';
+import { and, eq, desc, ilike, sql, or } from 'drizzle-orm';
 import { db } from '../database';
-import { shipments, users } from '../database/schema';
+import { shipments, users, sharedAccess } from '../database/schema';
 import type { ShipmentData } from '../types/bot';
 
 export class ShipmentService {
-  // Get user's shipments with pagination
+  // Get user's shipments with pagination (including shared)
   static async getUserShipments(userId: number, page = 0, pageSize = 5) {
+    // Get IDs of users who shared their shipments with this user
+    const sharedWithMe = await db
+      .select({ ownerId: sharedAccess.ownerId })
+      .from(sharedAccess)
+      .where(eq(sharedAccess.sharedWithId, userId));
+
+    const accessibleUserIds = [userId, ...sharedWithMe.map(s => s.ownerId)];
+
     const items = await db
       .select()
       .from(shipments)
-      .where(eq(shipments.ownerId, userId))
+      .where(or(
+        eq(shipments.ownerId, userId),
+        ...sharedWithMe.map(s => eq(shipments.ownerId, s.ownerId))
+      ))
       .orderBy(desc(shipments.createdAt))
       .limit(pageSize)
       .offset(page * pageSize);
@@ -17,20 +28,35 @@ export class ShipmentService {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(shipments)
-      .where(eq(shipments.ownerId, userId));
+      .where(or(
+        eq(shipments.ownerId, userId),
+        ...sharedWithMe.map(s => eq(shipments.ownerId, s.ownerId))
+      ));
 
     return { items, total: count };
   }
 
-  // Get single shipment by ID and user ID
+  // Helper: get accessible user IDs (own + shared with me)
+  static async getAccessibleUserIds(userId: number): Promise<number[]> {
+    const sharedWithMe = await db
+      .select({ ownerId: sharedAccess.ownerId })
+      .from(sharedAccess)
+      .where(eq(sharedAccess.sharedWithId, userId));
+
+    return [userId, ...sharedWithMe.map(s => s.ownerId)];
+  }
+
+  // Get single shipment by ID and user ID (including shared)
   static async getShipmentById(shipmentId: number, userId: number) {
+    const accessibleUserIds = await this.getAccessibleUserIds(userId);
+    
     const result = await db
       .select()
       .from(shipments)
       .where(
         and(
           eq(shipments.id, shipmentId),
-          eq(shipments.ownerId, userId)
+          or(...accessibleUserIds.map(id => eq(shipments.ownerId, id)))
         )
       )
       .limit(1);
@@ -38,15 +64,17 @@ export class ShipmentService {
     return result.length > 0 ? result[0] : null;
   }
 
-  // Get shipment by track number and user ID
+  // Get shipment by track number and user ID (including shared)
   static async getShipmentByTrackNumber(trackNumber: string, userId: number) {
+    const accessibleUserIds = await this.getAccessibleUserIds(userId);
+    
     const result = await db
       .select()
       .from(shipments)
       .where(
         and(
           eq(shipments.trackNumber, trackNumber),
-          eq(shipments.ownerId, userId)
+          or(...accessibleUserIds.map(id => eq(shipments.ownerId, id)))
         )
       )
       .limit(1);
@@ -54,10 +82,12 @@ export class ShipmentService {
     return result.length > 0 ? result[0] : null;
   }
 
-  // Search shipments by name (case-insensitive, partial match) with pagination
+  // Search shipments by name (case-insensitive, partial match) with pagination (including shared)
   static async searchByName(query: string, userId: number, page = 0, pageSize = 5) {
+    const accessibleUserIds = await this.getAccessibleUserIds(userId);
+    
     const where = and(
-      eq(shipments.ownerId, userId),
+      or(...accessibleUserIds.map(id => eq(shipments.ownerId, id))),
       ilike(shipments.description, `%${query}%`)
     );
 
@@ -96,11 +126,16 @@ export class ShipmentService {
     return result[0];
   }
 
-  // Update shipment
+  // Update shipment (only own shipments)
   static async updateShipment(shipmentId: number, userId: number, data: Partial<ShipmentData>) {
     const existing = await this.getShipmentById(shipmentId, userId);
     if (!existing) {
       throw new Error('Shipment not found or access denied');
+    }
+
+    // Can only edit own shipments, not shared ones
+    if (existing.ownerId !== userId) {
+      throw new Error('Can only edit your own shipments');
     }
 
     const updateData: any = {};
@@ -150,11 +185,16 @@ export class ShipmentService {
     return result[0];
   }
 
-  // Delete shipment
+  // Delete shipment (only own shipments)
   static async deleteShipment(shipmentId: number, userId: number) {
     const existing = await this.getShipmentById(shipmentId, userId);
     if (!existing) {
       throw new Error('Shipment not found or access denied');
+    }
+
+    // Can only delete own shipments, not shared ones
+    if (existing.ownerId !== userId) {
+      throw new Error('Can only delete your own shipments');
     }
 
     await db

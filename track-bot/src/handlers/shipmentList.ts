@@ -11,6 +11,7 @@ function buildShipmentListMessage(
   items: Awaited<ReturnType<typeof ShipmentService.getUserShipments>>["items"],
   total: number,
   page: number,
+  currentUserId: number,
 ) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   let message = `📦 *Sizning yuklaringiz* (${page + 1}/${totalPages}):\n\n`;
@@ -18,12 +19,14 @@ function buildShipmentListMessage(
   const keyboard = new InlineKeyboard();
 
   for (const shipment of items) {
+    const isShared = shipment.ownerId !== currentUserId;
+    const sharedLabel = isShared ? " [ULASHILGAN]" : "";
     const status = shipment.isPaid ? "💰 To'langan" : shipment.status;
     const shipmentPrice = shipment.shipmentPrice
       ? ` | 🚚 ${shipment.shipmentPrice} so'm`
       : "";
 
-    message += `🔹 *${shipment.trackNumber}*\n`;
+    message += `🔹 *${shipment.trackNumber}*${sharedLabel}\n`;
     message += `💰 Tovar: ${shipment.goodPrice} CNY${shipmentPrice}\n`;
     message += `📊 Holati: ${status}\n`;
 
@@ -36,10 +39,16 @@ function buildShipmentListMessage(
     const label = shipment.description
       ? shipment.description.substring(0, 20) + (shipment.description.length > 20 ? "…" : "")
       : shipment.trackNumber;
-    keyboard
-      .text(`✏️ ${label}`, `edit_shipment_${shipment.id}`)
-      .text(`🗑️`, `delete_shipment_${shipment.id}`)
-      .row();
+    
+    // Only show edit/delete for own shipments
+    if (!isShared) {
+      keyboard
+        .text(`✏️ ${label}`, `edit_shipment_${shipment.id}`)
+        .text(`🗑️`, `delete_shipment_${shipment.id}`)
+        .row();
+    } else {
+      keyboard.text(`👁️ ${label}`, `view_shipment_${shipment.id}`).row();
+    }
   }
 
   // Pagination buttons
@@ -65,14 +74,15 @@ function buildShipmentListMessage(
 composer.callbackQuery("list_shipments", async (ctx) => {
   await ctx.answerCallbackQuery();
 
-  const { items, total } = await ShipmentService.getUserShipments(ctx.user!.id, 0, PAGE_SIZE);
+  const userId = ctx.user!.id;
+  const { items, total } = await ShipmentService.getUserShipments(userId, 0, PAGE_SIZE);
 
   if (items.length === 0) {
     await ctx.reply("📦 Sizda hali yuklar yo'q.");
     return;
   }
 
-  const { message, keyboard } = buildShipmentListMessage(items, total, 0);
+  const { message, keyboard } = buildShipmentListMessage(items, total, 0, userId);
 
   await ctx.reply(message, {
     reply_markup: keyboard,
@@ -85,14 +95,15 @@ composer.callbackQuery(/^list_page_(\d+)$/, async (ctx) => {
   const page = parseInt(ctx.match[1]);
   await ctx.answerCallbackQuery();
 
-  const { items, total } = await ShipmentService.getUserShipments(ctx.user!.id, page, PAGE_SIZE);
+  const userId = ctx.user!.id;
+  const { items, total } = await ShipmentService.getUserShipments(userId, page, PAGE_SIZE);
 
   if (items.length === 0) {
     await ctx.reply("📦 Bu sahifada yuklar yo'q.");
     return;
   }
 
-  const { message, keyboard } = buildShipmentListMessage(items, total, page);
+  const { message, keyboard } = buildShipmentListMessage(items, total, page, userId);
 
   await ctx.editMessageText(message, {
     reply_markup: keyboard,
@@ -103,6 +114,41 @@ composer.callbackQuery(/^list_page_(\d+)$/, async (ctx) => {
 // noop for page indicator button
 composer.callbackQuery("noop", async (ctx) => {
   await ctx.answerCallbackQuery();
+});
+
+// View shared shipment (read-only)
+composer.callbackQuery(/^view_shipment_(\d+)$/, async (ctx) => {
+  const shipmentId = parseInt(ctx.match[1]);
+  await ctx.answerCallbackQuery();
+
+  const shipment = await ShipmentService.getShipmentById(shipmentId, ctx.user!.id);
+  
+  if (!shipment) {
+    await ctx.reply("❌ Yuk topilmadi.");
+    return;
+  }
+
+  const status = shipment.isPaid ? "💰 To'langan" : shipment.status;
+  const shipmentPrice = shipment.shipmentPrice
+    ? ` | 🚚 ${shipment.shipmentPrice} so'm`
+    : "";
+
+  let message = `📦 *Yuk ma'lumotlari (Faqat ko'rish)*:\n\n`;
+  message += `🔹 *Tracking:* ${shipment.trackNumber}\n`;
+  if (shipment.description) {
+    message += `📝 *Nomi:* ${shipment.description}\n`;
+  }
+  message += `💰 *Tovar narxi:* ${shipment.goodPrice} CNY${shipmentPrice}\n`;
+  message += `📊 *Holati:* ${status}\n`;
+  message += `📅 *Qo'shilgan:* ${shipment.createdAt?.toLocaleDateString("uz-UZ") || "N/A"}\n`;
+
+  const keyboard = new InlineKeyboard()
+    .text("📋 Ro'yxatga qaytish", "list_shipments");
+
+  await ctx.reply(message, {
+    reply_markup: keyboard,
+    parse_mode: "Markdown",
+  });
 });
 
 // Search shipment callback

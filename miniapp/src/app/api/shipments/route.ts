@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
 import { db } from '@/db';
-import { shipments, users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { shipments, users, sharedAccess } from '@/db/schema';
+import { eq, or } from 'drizzle-orm';
 
 const mockShipments = [
   {
@@ -112,6 +112,12 @@ export async function GET() {
 
     const userId = parseInt(session.user.id);
 
+    // Get IDs of users who shared their shipments with this user
+    const sharedWithMe = await db
+      .select({ ownerId: sharedAccess.ownerId })
+      .from(sharedAccess)
+      .where(eq(sharedAccess.sharedWithId, userId));
+
     const userShipments = await db.select({
       id: shipments.id,
       trackNumber: shipments.trackNumber,
@@ -126,10 +132,14 @@ export async function GET() {
       ownerUsername: users.username,
       ownerFirstName: users.firstName,
       ownerLastName: users.lastName,
+      ownerId: shipments.ownerId,
     })
     .from(shipments)
     .leftJoin(users, eq(shipments.ownerId, users.id))
-    .where(eq(shipments.ownerId, userId));
+    .where(or(
+      eq(shipments.ownerId, userId),
+      ...sharedWithMe.map(s => eq(shipments.ownerId, s.ownerId))
+    ));
 
     return NextResponse.json(userShipments);
   } catch (error) {
