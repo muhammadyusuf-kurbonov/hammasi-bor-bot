@@ -1,1 +1,1 @@
-/home/muhammadyusuf-kurbonov/Projects/MyProjects/hammasi-bor-tracking-bot/track-bot/src/database/schema.ts
+../../../track-bot/src/database/schema.ts

@@ -1,20 +1,23 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+COPY miniapp/package.json miniapp/package-lock.json* ./
 RUN npm ci
 
 # Build the application
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
-RUN npm run build
+COPY miniapp/. .
+RUN rm src/db/schema.ts
+COPY track-bot/src/database/schema.ts src/db/schema.ts
+
+RUN ls -la src/db/ && npm run build
 
 # Production image
 FROM base AS runner
