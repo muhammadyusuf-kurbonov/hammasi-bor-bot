@@ -1,10 +1,10 @@
 import type { Config } from 'drizzle-kit';
 
 export default {
-  schema: './src/db/schema.ts',
+  dialect: 'postgresql',
+  schema: '../track-bot/src/database/schema.ts',
   out: './drizzle',
-  driver: 'pg',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/hammasi_bor',
   },
 } satisfies Config;
