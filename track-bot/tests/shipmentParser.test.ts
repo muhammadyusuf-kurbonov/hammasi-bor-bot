@@ -90,6 +90,25 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
       });
     });
 
+    test("should parse shipment message with spaced price formatting", () => {
+      const message = `Assalomu alaykum, hurmatli mijoz!
+
+777390631560494 trek raqamli buyurtmangiz Xitoy omboridan jo'natildi va O'zbekiston tomon yo'lga chiqdi. 🛫
+
+🏋️‍♂️ Og'irligi: 0.1 kg
+💰 Yo'l haqi: 7 500 so'm 
+ILTIMOS TO'LOVNI AMALGA OSHIRING`;
+      
+      const result = ShipmentParser.parseMessage(message);
+      
+      expect(result).toEqual({
+        trackNumber: "777390631560494",
+        shipmentPrice: 7500,
+        receivePriceCNY: 4.69,
+        receivePriceUZS: 7500
+      });
+    });
+
     test("should return null for non-shipment messages", () => {
       const message = "Hello, how are you?";
       const result = ShipmentParser.parseMessage(message);
@@ -118,6 +137,13 @@ ILTIMOS TO'LOVNI AMALGA OSHIRING`;
 
     test("should return true for price-based shipment messages", () => {
       const message = "465044299299134 trek raqamli buyurtmangiz Xitoy omboridan jo'natildi. Yo'l haqi: 16300 so'm";
+      const result = ShipmentParser.shouldTriggerAddFlow(message);
+      
+      expect(result).toBe(true);
+    });
+
+    test("should return true for shipment messages with spaced price formatting", () => {
+      const message = `Assalomu alaykum, hurmatli mijoz!\n\n777390631560494 trek raqamli buyurtmangiz Xitoy omboridan jo'natildi va O'zbekiston tomon yo'lga chiqdi. 🛫\n\n🏋️‍♂️ Og'irligi: 0.1 kg\n💰 Yo'l haqi: 7 500 so'm \nILTIMOS TO'LOVNI AMALGA OSHIRING`;
       const result = ShipmentParser.shouldTriggerAddFlow(message);
       
       expect(result).toBe(true);

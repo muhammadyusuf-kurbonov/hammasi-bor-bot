@@ -12,7 +12,7 @@ export interface ParsedShipmentData {
 
 // Simple parser for the specific message format
 const TRACK_NUMBER_REGEX = /(?:JT|YT)\d{12,13}|\d{12,15}/gi;
-const PRICE_REGEX = /yo'l haqi:\s*(\d+(?:\.\d{2})?)\s*so'm/gi;
+const PRICE_REGEX = /yo'l haqi:\s*([\d\s,]+(?:\.\d{2})?)\s*so'm/gi;
 const ORDER_SUCCESS_REGEX = /trek\s+raqam[i]?:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/i;
 
 export class ShipmentParser {
@@ -65,26 +65,29 @@ export class ShipmentParser {
    */
   static shouldTriggerAddFlow(text: string): boolean {
     const normalizedText = text.toLowerCase().trim();
-    
-    // Check for order success message (use fresh regex to avoid lastIndex issues)
-    const orderSuccessRegex = /trek\s+raqam[i]?:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/gi;
-    if (orderSuccessRegex.exec(normalizedText)) {
+
+    // Order success messages should always trigger
+    const orderSuccessRegex = /trek\s+raqam[i]?:\s*(JT\d{12,13}|YT\d{12,13}|\d{12,15})/i;
+    if (orderSuccessRegex.test(normalizedText)) {
       return true;
     }
-    
-    // Check for price message (existing functionality)
-    return PRICE_REGEX.test(normalizedText) && TRACK_NUMBER_REGEX.test(normalizedText);
+
+    // Look for a track number + price (supports spaced thousands like "7 500")
+    const priceRegex = /yo'l haqi:\s*([\d\s,]+(?:\.\d{2})?)\s*so'm/i;
+    const trackRegex = /(?:JT|YT)\d{12,13}|\d{12,15}/i;
+    return priceRegex.test(normalizedText) && trackRegex.test(normalizedText);
   }
 
   /**
    * Extract price information and convert CNY to UZS
    */
   private static extractPriceInfo(priceStr: string): { cnyPrice?: number; uzsPrice?: number } {
-    // Extract numeric value
-    const match = priceStr.match(/(\d+(?:\.\d{2})?)/);
+    // Extract numeric value (supports separators like spaces and commas)
+    const match = priceStr.match(/(\d[\d\s,]*(?:\.\d{2})?)/);
     if (!match) return {};
 
-    const price = parseFloat(match[1]);
+    const normalized = match[1].replace(/[\s,]/g, "");
+    const price = parseFloat(normalized);
     
     // This is the shipment price in UZS, convert to CNY for storage
     const cnyPrice = Math.round(price / 1600 * 100) / 100;
